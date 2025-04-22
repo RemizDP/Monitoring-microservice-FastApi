@@ -12,7 +12,11 @@ import uvicorn
 # ======================
 # Настройка подключения к БД
 # ======================
-DATABASE_URL = "postgresql://postgres:0000@localhost:5432/LoggingMicroservice"
+import os
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "postgresql://postgres:0000@localhost:5432/LoggingMicroservice"
+)
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
