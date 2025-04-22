@@ -1,0 +1,24 @@
+<head>
+</head>
+<body>
+<script>
+  // Создаём объект WebSocket, указывая URL сервера
+  const ws = new WebSocket("ws://localhost:8000/ws");
+
+  // Обработчик события: соединение успешно установлено
+  ws.onopen = function() {
+    console.log("WebSocket соединение установлено");
+  };
+
+  // Обработчик события: получение сообщения от сервера
+  ws.onmessage = function(event) {
+    console.log("Получено сообщение:", event.data);
+    // Здесь можно обновлять пользовательский интерфейс (UI) в режиме реального времени
+  };
+
+  // Обработчик события: ошибка WebSocket
+  ws.onerror = function(error) {
+    console.error("Ошибка WebSocket:", error);
+  };
+</script>
+</body>
