@@ -1,0 +1,62 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+
+env:
+  IMAGE_NAME: monitoring-service
+
+jobs:
+  plan-a:
+    name: Plan A - Build Binary and Run Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Build and compile binary
+        run: |
+          docker build -f Dockerfile.build -t ${IMAGE_NAME}-build .
+          docker create --name app-container ${IMAGE_NAME}-build
+          docker cp app-container:/app/dist/main ./build_artifact
+          docker rm app-container
+
+      - name: Run tests
+        run: docker run ${IMAGE_NAME}-build
+
+      - name: Upload binary as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: build_artifact
+          path: ./build_artifact
+
+  plan-b:
+    name: Plan B - Build Final Docker Image
+    runs-on: ubuntu-latest
+    needs: plan-a
+
+    steps:
+      - name: Checkout source repo
+        uses: actions/checkout@v3
+
+      - name: Download compiled binary artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: build_artifact
+          path: ./build_artifact
+
+      - name: Clone config repo
+        run: |
+          git clone https://github.com/YOUR_ORG/monitoring-configs.git
+          cp -r monitoring-configs/configs ./configs
+
+      - name: Log in to DockerHub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+      - name: Build final image
+        run: docker build -t "${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest" .
+
+      - name: Push image to DockerHub
+        run: docker push "${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest"
