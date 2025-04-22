@@ -1,85 +1,85 @@
 name: CI/CD Pipeline
- 
- on:
-   push:
-     branches: [main]
- 
- env:
-   IMAGE_NAME: monitoring-service
- 
- jobs:
-   plan-a:
-     name: Plan A - Build & Test Binary
-     runs-on: ubuntu-latest
- 
-     services:
-       postgres:
-         image: postgres:14
-         env:
-           POSTGRES_USER: postgres
-           POSTGRES_PASSWORD: 0000
-           POSTGRES_DB: LoggingMicroservice
-         ports:
-           - 5432:5432
-         options: >-
-           --health-cmd pg_isready 
-           --health-interval 10s 
-           --health-timeout 5s 
-           --health-retries 5
- 
-     steps:
-       - name: Checkout code
-         uses: actions/checkout@v3
- 
-       - name: Set up Python
-         uses: actions/setup-python@v4
-         with:
-           python-version: 3.11
- 
-       - name: Install dependencies
-         run: |
-           cd microserviceFastApi
-           pip install -r requirements.txt
- 
-       - name: Wait for DB to be ready
-         run: |
-           echo "Waiting for PostgreSQL to be ready..."
-           until pg_isready -h localhost -p 5432 -U postgres; do
-             sleep 2
-           done
- 
-       - name: Run tests
-         run: |
-           cd microserviceFastApi
-           pytest
-         env:
-           DATABASE_URL: postgresql://postgres:0000@localhost:5432/LoggingMicroservice
- 
-   plan-b:
-     name: Plan B - Build Docker Image
-     runs-on: ubuntu-latest
-     needs: plan-a
- 
-     steps:
-       - name: Checkout code
-         uses: actions/checkout@v3
- 
-       - name: Download binary artifact
-         uses: actions/download-artifact@v4
-         with:
-           name: build_artifact
-           path: ./microserviceFastApi/build_artifact
- 
-       - name: Clone configs repo
-         run: |
-           git clone https://github.com/RemizDP/monitoring-configs.git
-           cp -r monitoring-configs/configs ./microserviceFastApi/configs
- 
-       - name: DockerHub login
-         run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
- 
-       - name: Build & Push Docker image
-         run: |
-           cd microserviceFastApi
-           docker build -t "${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest" .
-           docker push "${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest"
+
+on:
+  push:
+    branches: [main]
+
+env:
+  IMAGE_NAME: monitoring-service
+
+jobs:
+  plan-a:
+    name: Plan A - Build & Test Binary
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: 0000
+          POSTGRES_DB: LoggingMicroservice
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready 
+          --health-interval 10s 
+          --health-timeout 5s 
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
+
+      - name: Install dependencies
+        run: |
+          cd microserviceFastApi
+          pip install -r requirements.txt
+
+      - name: Wait for DB to be ready
+        run: |
+          echo "Waiting for PostgreSQL to be ready..."
+          until pg_isready -h localhost -p 5432 -U postgres; do
+            sleep 2
+          done
+
+      - name: Run tests
+        run: |
+          cd microserviceFastApi
+          pytest
+        env:
+          DATABASE_URL: postgresql://postgres:0000@localhost:5432/LoggingMicroservice
+
+  plan-b:
+    name: Plan B - Build Docker Image
+    runs-on: ubuntu-latest
+    needs: plan-a
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Download binary artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: build_artifact
+          path: ./microserviceFastApi/build_artifact
+
+      - name: Clone configs repo
+        run: |
+          git clone https://github.com/RemizDP/monitoring-configs.git
+          cp -r monitoring-configs/configs ./microserviceFastApi/configs
+
+      - name: DockerHub login
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+      - name: Build & Push Docker image
+        run: |
+          cd microserviceFastApi
+          docker build -t "${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest" .
+          docker push "${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest"
