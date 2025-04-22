@@ -1,19 +1,21 @@
-# Dockerfile.build — сборка бинарника и тестирование
+# monitoring-service/microservice-FastApi/Dockerfile.build
+
 FROM python:3.11-slim
 
 WORKDIR /app
 
-# Устанавливаем зависимости
+# Устанавливаем необходимые системные зависимости
+RUN apt-get update && apt-get install -y binutils build-essential
+
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 RUN pip install pyinstaller pytest
 
-# Копируем исходники
 COPY main.py .
 COPY tests/ ./tests/
 
 # Собираем бинарник
 RUN pyinstaller --onefile main.py
 
-# По умолчанию запускаем тесты
+# Запускаем тесты
 CMD ["pytest", "tests/"]
