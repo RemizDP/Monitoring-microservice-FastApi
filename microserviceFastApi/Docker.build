@@ -1,0 +1,19 @@
+# Dockerfile.build — сборка бинарника и тестирование
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Устанавливаем зависимости
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+RUN pip install pyinstaller pytest
+
+# Копируем исходники
+COPY main.py .
+COPY tests/ ./tests/
+
+# Собираем бинарник
+RUN pyinstaller --onefile main.py
+
+# По умолчанию запускаем тесты
+CMD ["pytest", "tests/"]
