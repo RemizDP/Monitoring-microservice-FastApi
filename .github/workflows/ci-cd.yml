@@ -44,7 +44,7 @@ jobs:
       - name: Wait for DB to be ready
         run: |
           echo "Waiting for PostgreSQL to be ready..."
-          until pg_isready -h localhost -p 5432 -U testuser; do
+          until pg_isready -h localhost -p 5432 -U postgres; do
             sleep 2
           done
 
