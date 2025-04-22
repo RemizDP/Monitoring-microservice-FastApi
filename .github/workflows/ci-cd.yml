@@ -3,11 +3,9 @@ name: CI/CD Pipeline
 on:
   push:
     branches: [main]
-  pull_request:
 
 env:
   IMAGE_NAME: monitoring-service
-  DATABASE_URL: postgresql://postgres:0000@localhost:5432/LoggingMicroservice
 
 jobs:
   plan-a:
@@ -24,9 +22,9 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
+          --health-cmd pg_isready 
+          --health-interval 10s 
+          --health-timeout 5s 
           --health-retries 5
 
     steps:
@@ -37,9 +35,6 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: 3.11
-
-      - name: Install PostgreSQL client
-        run: sudo apt-get update && sudo apt-get install -y postgresql-client
 
       - name: Install dependencies
         run: |
@@ -57,12 +52,8 @@ jobs:
         run: |
           cd microserviceFastApi
           pytest
-
-      - name: Save artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: build_artifact
-          path: ./microserviceFastApi/build_artifact  # Убедись, что такой путь есть
+        env:
+          DATABASE_URL: postgresql://postgres:0000@localhost:5432/LoggingMicroservice
 
   plan-b:
     name: Plan B - Build Docker Image
@@ -81,7 +72,7 @@ jobs:
 
       - name: Clone configs repo
         run: |
-          git clone https://github.com/RemizDP/monitoring-configs.git
+          git clone https://github.com/YOUR_ORG/monitoring-configs.git
           cp -r monitoring-configs/configs ./microserviceFastApi/configs
 
       - name: DockerHub login
