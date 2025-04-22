@@ -9,7 +9,7 @@ from sqlalchemy.orm import sessionmaker
 from main import app, Base, get_db, Event, User
 
 # Задайте строку подключения к тестовой базе PostgreSQL
-SQLALCHEMY_DATABASE_URL = "postgresql://postgres:0000@localhost:5432/LoggingMicroservice"
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:0000@localhost:5432/LoggingMicroservice")
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
