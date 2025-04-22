@@ -12,28 +12,48 @@ jobs:
     name: Plan A - Build & Test Binary
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: testdb
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U testuser" 
+          --health-interval 10s 
+          --health-timeout 5s 
+          --health-retries 5
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Build & compile binary
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
+
+      - name: Install dependencies
         run: |
           cd microserviceFastApi
-          docker build -f Dockerfile.build -t ${IMAGE_NAME}-build .
-          docker create --name app-container ${IMAGE_NAME}-build
-          docker cp app-container:/app/dist/main ../build_artifact
-          docker rm app-container
+          pip install -r requirements.txt
+
+      - name: Wait for DB to be ready
+        run: |
+          echo "Waiting for PostgreSQL to be ready..."
+          until pg_isready -h localhost -p 5432 -U testuser; do
+            sleep 2
+          done
 
       - name: Run tests
         run: |
           cd microserviceFastApi
-          docker run ${IMAGE_NAME}-build
-
-      - name: Upload binary
-        uses: actions/upload-artifact@v4
-        with:
-          name: build_artifact
-          path: ./build_artifact
+          pytest
+        env:
+          DATABASE_URL: postgresql://postgres:0000@localhost:5432/LoggingMicroservice
 
   plan-b:
     name: Plan B - Build Docker Image
