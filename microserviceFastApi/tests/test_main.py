@@ -1,23 +1,25 @@
 import pytest
 import datetime
 import os, sys
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+# Добавляем путь к корню проекта
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from main import app, Base, get_db, Event, User
 
-# Задайте строку подключения к тестовой базе PostgreSQL
+# Используем строку подключения из переменной окружения
 SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:0000@localhost:5432/LoggingMicroservice")
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Создаём таблицы в тестовой базе данных (если они ещё не созданы)
+# Создаём таблицы
 Base.metadata.create_all(bind=engine)
 
-# Переопределяем зависимость для получения сессии БД в приложении
+# Переопределяем зависимость FastAPI
 def override_get_db():
     db = TestingSessionLocal()
     try:
@@ -26,28 +28,24 @@ def override_get_db():
         db.close()
 
 app.dependency_overrides[get_db] = override_get_db
-
 client = TestClient(app)
 
 @pytest.fixture(autouse=True)
-def run_around_tests():
-    # Перед каждым тестом очищаем таблицы и создаём тестового пользователя
+def setup_and_teardown():
     db = TestingSessionLocal()
     # Очищаем таблицы
     db.query(Event).delete()
     db.query(User).delete()
-    # Создаем тестового пользователя
+    # Добавляем тестового пользователя
     test_user = User(user_id=1, login="testuser", role=2)
     db.add(test_user)
     db.commit()
     db.close()
-    yield
-    # После теста можно добавить очистку, если потребуется
+    yield  # тест запускается здесь
 
 def test_get_events_empty():
     response = client.get("/events")
     assert response.status_code == 200
-    # При пустой таблице список событий должен быть пустым
     assert response.json() == []
 
 def test_create_event():
@@ -64,7 +62,6 @@ def test_create_event():
     data = response.json()
     assert data["event_name"] == "Test Event"
     assert data["comment"] == "This is a test event"
-    # Проверяем наличие поля date (формат ISO)
     assert "date" in data
 
 def test_get_event_by_id():
@@ -128,10 +125,8 @@ def test_delete_event():
 
     response = client.delete(f"/events/{event_id}")
     assert response.status_code == 200
-    data = response.json()
-    assert data["detail"] == "Событие удалено"
+    assert response.json()["detail"] == "Событие удалено"
 
-    # Проверяем, что событие больше не доступно
     response = client.get(f"/events/{event_id}")
     assert response.status_code == 404
 
@@ -139,7 +134,5 @@ def test_get_users():
     response = client.get("/users")
     assert response.status_code == 200
     data = response.json()
-    # Проверяем, что тестовый пользователь присутствует
     assert isinstance(data, list)
-    assert len(data) >= 1
-    assert "login" in data[0]
+    assert any(user["login"] == "testuser" for user in data)
