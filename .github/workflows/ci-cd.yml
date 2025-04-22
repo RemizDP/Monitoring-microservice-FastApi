@@ -16,9 +16,9 @@ jobs:
       postgres:
         image: postgres:14
         env:
-          POSTGRES_USER: testuser
-          POSTGRES_PASSWORD: testpass
-          POSTGRES_DB: testdb
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: 0000
+          POSTGRES_DB: LoggingMicroservice
         ports:
           - 5432:5432
         options: >-
