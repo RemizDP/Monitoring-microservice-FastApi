@@ -41,13 +41,6 @@ jobs:
           cd microserviceFastApi
           pip install -r requirements.txt
 
-      - name: Wait for DB to be ready
-        run: |
-          echo "Waiting for PostgreSQL to be ready..."
-          until pg_isready -h postgres -p 5432 -U postgres; do
-            sleep 2
-          done
-
       - name: Run tests
         run: |
           cd microserviceFastApi
